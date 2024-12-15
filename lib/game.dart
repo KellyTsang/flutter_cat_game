@@ -1,4 +1,5 @@
-//20241212_modified jump height
+/*20241212_modified jump height
+20241213_add to show the rank , add timer and max score*/
 import 'package:flame/game.dart';
 import 'package:flame/components.dart';
 import 'package:flame/flame.dart';
@@ -6,19 +7,25 @@ import 'package:flame/effects.dart';
 import 'package:flutter/material.dart';
 import 'package:flame/events.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector2;
+import 'storage.dart';
 
 class CatGame extends FlameGame with TapDetector, KeyboardHandler {
+  final String playerName;
   late CatSprite catSprite;
   late TextComponent scoreText;
+  late TimerComponent gameTimer;
   SpriteComponent? background;
   bool isGameWon = false;
+  bool isGameOver = false;
+
+  CatGame({required this.playerName});
 
   int score = 0;
 
   // Different score values for different actions
   static const int JUMP_SCORE = 10;
   static const int SPIN_SCORE = 20;
-  static const int DANCE_SCORE = 30;
+  static const int DANCE_SCORE = 300;
 
   @override
   Future<void> onLoad() async {
@@ -54,6 +61,14 @@ class CatGame extends FlameGame with TapDetector, KeyboardHandler {
         position: Vector2(10, 10),
       );
       add(scoreText);
+
+      // Initialize and add game timer
+      gameTimer = TimerComponent(
+        period: 30, // 60 seconds for 1 minute
+        repeat: false,
+        onTick: endGame,
+      );
+      add(gameTimer);
     } catch (e) {
       print('Error during loading: $e');
     }
@@ -68,7 +83,7 @@ class CatGame extends FlameGame with TapDetector, KeyboardHandler {
   @override
   void onTapDown(TapDownInfo info) {
     super.onTapDown(info);
-    if (!paused && !isGameWon) {
+    if (!paused && !isGameWon && !isGameOver) {
       final touchPoint = info.eventPosition.widget;
       final vector2Point = Vector2(touchPoint.x, touchPoint.y);
       if (catSprite.containsPoint(vector2Point)) {
@@ -99,14 +114,30 @@ class CatGame extends FlameGame with TapDetector, KeyboardHandler {
   }
 
   void checkWinCondition() {
-    if (score >= 1000 && !isGameWon) {
+    if (score >= 500000 && !isGameWon) {
       isGameWon = true;
       showWinMessage();
     }
   }
 
   void showWinMessage() {
+    ScoreManager.addScore(Player(name: playerName, score: score));
     final dialog = WinDialogComponent(
+      size: Vector2(300, 200),
+      position: size / 2,
+      score: score,
+    );
+    add(dialog);
+  }
+
+  void endGame() {
+    isGameOver = true;
+    showEndMessage();
+  }
+
+  void showEndMessage() {
+    ScoreManager.addScore(Player(name: playerName, score: score));
+    final dialog = EndDialogComponent(
       size: Vector2(300, 200),
       position: size / 2,
       score: score,
@@ -117,8 +148,10 @@ class CatGame extends FlameGame with TapDetector, KeyboardHandler {
   void reset() {
     score = 0;
     isGameWon = false;
+    isGameOver = false;
     scoreText.text = 'Score: $score';
     catSprite.position = Vector2(size.x / 2, size.y - 150);
+    gameTimer.timer.start(); // Restart the game timer
   }
 }
 
@@ -223,6 +256,59 @@ class WinDialogComponent extends PositionComponent {
     textPaint.render(
       canvas,
       'You Win!',
+      Vector2(size.x / 2, size.y / 2 - 20),
+      anchor: Anchor.center,
+    );
+
+    // Draw score
+    textPaint.render(
+      canvas,
+      'Score: $score',
+      Vector2(size.x / 2, size.y / 2 + 20),
+      anchor: Anchor.center,
+    );
+  }
+}
+
+class EndDialogComponent extends PositionComponent {
+  final int score;
+
+  EndDialogComponent({
+    required Vector2 position,
+    required Vector2 size,
+    required this.score,
+  }) : super(
+    position: position,
+    size: size,
+    anchor: Anchor.center,
+  );
+
+  @override
+  void render(Canvas canvas) {
+    final rect = Rect.fromLTWH(0, 0, size.x, size.y);
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.9)
+      ..style = PaintingStyle.fill;
+
+    // Draw dialog background with rounded corners
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(20)),
+      paint,
+    );
+
+    // Draw text
+    final textPaint = TextPaint(
+      style: const TextStyle(
+        color: Colors.black,
+        fontSize: 24,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+
+    // Draw end message
+    textPaint.render(
+      canvas,
+      'Time’s Up!',
       Vector2(size.x / 2, size.y / 2 - 20),
       anchor: Anchor.center,
     );

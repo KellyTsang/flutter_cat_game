@@ -1,8 +1,8 @@
-//20241212
-
+//20241213_add to show the rank
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 import 'game.dart';
+import 'storage.dart';
 
 void main() {
   runApp(const MyApp());
@@ -19,15 +19,111 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: GamePage(),
+      home: const LoginPage(),
+    );
+  }
+}
+
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final TextEditingController _nameController = TextEditingController();
+  List<Player> highScores = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHighScores();
+  }
+
+  Future<void> _loadHighScores() async {
+    final scores = await ScoreManager.getHighScores();
+    setState(() {
+      highScores = scores;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Cat Game Login'),
+      ),
+      body: Stack(
+        children: [
+          // Background image
+          Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/background2.png'),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          // Login form
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                TextField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Enter your name',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    if (_nameController.text.isNotEmpty) {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => GamePage(playerName: _nameController.text),
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text('Start Game'),
+                ),
+                const SizedBox(height: 40),
+                const Text(
+                  'High Scores',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: highScores.length,
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        leading: Text('${index + 1}'),
+                        title: Text(highScores[index].name),
+                        trailing: Text(highScores[index].score.toString()),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
 class GamePage extends StatelessWidget {
-  final CatGame catGame = CatGame();
+  final CatGame catGame;
+  final String playerName;
 
-  GamePage({super.key});
+  GamePage({super.key, required this.playerName})
+      : catGame = CatGame(playerName: playerName);
 
   @override
   Widget build(BuildContext context) {
