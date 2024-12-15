@@ -11,3 +11,7 @@ Each action yields different scores, and your goal is to reach a total score of 
 - Pause and Restart Options: Easily pause the game, restart, or resume at any time, ensuring a smooth gaming experience.
 - Winning Celebration: Reach the target score to trigger a fun win dialog, celebrating your achievement.
 Get ready to tap, score, and enjoy the whimsical animations of your new feline friend!
+
+# Changes
+- 20241212_modified jump height
+- 20241213 add to show the rank , add timer and max score
