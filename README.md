@@ -1,4 +1,4 @@
-# flutter_cat_game (202412112)
+# flutter_cat_game (20241215)
 ![Alt Text](https://i.ibb.co/wsCxPtP/flutter-cat.gif)
 Welcome to the Cat Interaction Game, a fun and engaging Flutter-based game where players can interact with a charming cat sprite! 
 In this game, you will experience a delightful combination of tapping mechanics and playful animations that bring the cat to life.
