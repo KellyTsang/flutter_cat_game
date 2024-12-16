@@ -1,5 +1,6 @@
 /*20241212_modified jump height
-20241213_add to show the rank , add timer and max score*/
+20241213_add to show the rank , add timer and max score
+20241215 add exit button*/
 import 'package:flame/game.dart';
 import 'package:flame/components.dart';
 import 'package:flame/flame.dart';
@@ -11,6 +12,7 @@ import 'storage.dart';
 
 class CatGame extends FlameGame with TapDetector, KeyboardHandler {
   final String playerName;
+  final BuildContext context;
   late CatSprite catSprite;
   late TextComponent scoreText;
   late TimerComponent gameTimer;
@@ -18,11 +20,13 @@ class CatGame extends FlameGame with TapDetector, KeyboardHandler {
   bool isGameWon = false;
   bool isGameOver = false;
 
-  CatGame({required this.playerName});
+  CatGame({
+    required this.playerName,
+    required this.context,
+  });
 
   int score = 0;
 
-  // Different score values for different actions
   static const int JUMP_SCORE = 10;
   static const int SPIN_SCORE = 20;
   static const int DANCE_SCORE = 300;
@@ -32,23 +36,19 @@ class CatGame extends FlameGame with TapDetector, KeyboardHandler {
     await super.onLoad();
 
     try {
-      // Load images
       final backgroundImage = await Flame.images.load('background.png');
       await Flame.images.load('cat.png');
 
-      // Initialize and add background
       background = SpriteComponent()
         ..sprite = Sprite(backgroundImage)
         ..size = size;
       add(background!);
 
-      // Add cat sprite
       catSprite = CatSprite()
         ..position = Vector2(size.x / 2, size.y - 150)
         ..size = Vector2(100, 100);
       add(catSprite);
 
-      // Add score text
       scoreText = TextComponent(
         text: 'Score: $score',
         textRenderer: TextPaint(
@@ -62,9 +62,8 @@ class CatGame extends FlameGame with TapDetector, KeyboardHandler {
       );
       add(scoreText);
 
-      // Initialize and add game timer
       gameTimer = TimerComponent(
-        period: 30, // 60 seconds for 1 minute
+        period: 30,
         repeat: false,
         onTick: endGame,
       );
@@ -72,6 +71,10 @@ class CatGame extends FlameGame with TapDetector, KeyboardHandler {
     } catch (e) {
       print('Error during loading: $e');
     }
+  }
+
+  void exitToLoginPage() {
+    Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
   }
 
   @override
@@ -86,8 +89,8 @@ class CatGame extends FlameGame with TapDetector, KeyboardHandler {
     if (!paused && !isGameWon && !isGameOver) {
       final touchPoint = info.eventPosition.widget;
       final vector2Point = Vector2(touchPoint.x, touchPoint.y);
+
       if (catSprite.containsPoint(vector2Point)) {
-        // Random movement selection
         final random = DateTime.now().millisecondsSinceEpoch % 3;
         switch (random) {
           case 0:
@@ -126,6 +129,7 @@ class CatGame extends FlameGame with TapDetector, KeyboardHandler {
       size: Vector2(300, 200),
       position: size / 2,
       score: score,
+      onExit: exitToLoginPage,
     );
     add(dialog);
   }
@@ -141,6 +145,7 @@ class CatGame extends FlameGame with TapDetector, KeyboardHandler {
       size: Vector2(300, 200),
       position: size / 2,
       score: score,
+      onExit: exitToLoginPage,
     );
     add(dialog);
   }
@@ -151,7 +156,7 @@ class CatGame extends FlameGame with TapDetector, KeyboardHandler {
     isGameOver = false;
     scoreText.text = 'Score: $score';
     catSprite.position = Vector2(size.x / 2, size.y - 150);
-    gameTimer.timer.start(); // Restart the game timer
+    gameTimer.timer.start();
   }
 }
 
@@ -190,7 +195,7 @@ class CatSprite extends SpriteComponent with HasGameRef<CatGame> {
       isAnimating = true;
       add(
         RotateEffect.by(
-          2 * 3.14159, // Full rotation
+          2 * 3.14159,
           EffectController(
             duration: 1.0,
             curve: Curves.easeInOut,
@@ -217,13 +222,19 @@ class CatSprite extends SpriteComponent with HasGameRef<CatGame> {
   }
 }
 
-class WinDialogComponent extends PositionComponent {
+class WinDialogComponent extends PositionComponent with TapCallbacks {
   final int score;
+  final VoidCallback onExit;
+  final buttonRect = RRect.fromRectAndRadius(
+    const Rect.fromLTWH(100, 140, 100, 40),
+    const Radius.circular(10),
+  );
 
   WinDialogComponent({
     required Vector2 position,
     required Vector2 size,
     required this.score,
+    required this.onExit,
   }) : super(
     position: position,
     size: size,
@@ -237,13 +248,11 @@ class WinDialogComponent extends PositionComponent {
       ..color = Colors.white.withOpacity(0.9)
       ..style = PaintingStyle.fill;
 
-    // Draw dialog background with rounded corners
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, const Radius.circular(20)),
       paint,
     );
 
-    // Draw text
     final textPaint = TextPaint(
       style: const TextStyle(
         color: Colors.black,
@@ -252,7 +261,6 @@ class WinDialogComponent extends PositionComponent {
       ),
     );
 
-    // Draw win message
     textPaint.render(
       canvas,
       'You Win!',
@@ -260,23 +268,57 @@ class WinDialogComponent extends PositionComponent {
       anchor: Anchor.center,
     );
 
-    // Draw score
     textPaint.render(
       canvas,
       'Score: $score',
       Vector2(size.x / 2, size.y / 2 + 20),
       anchor: Anchor.center,
     );
+
+    canvas.drawRRect(
+      buttonRect,
+      Paint()..color = Colors.blue,
+    );
+
+    const buttonTextStyle = TextStyle(
+      color: Colors.white,
+      fontSize: 20,
+      fontWeight: FontWeight.bold,
+    );
+
+    final buttonTextPaint = TextPaint(style: buttonTextStyle);
+    buttonTextPaint.render(
+      canvas,
+      'Exit',
+      Vector2(150, 160),
+      anchor: Anchor.center,
+    );
+  }
+
+  @override
+  bool onTapDown(TapDownEvent event) {
+    final touchPoint = event.localPosition;
+    if (buttonRect.contains(Offset(touchPoint.x, touchPoint.y))) {
+      onExit();
+      return true;
+    }
+    return false;
   }
 }
 
-class EndDialogComponent extends PositionComponent {
+class EndDialogComponent extends PositionComponent with TapCallbacks {
   final int score;
+  final VoidCallback onExit;
+  final buttonRect = RRect.fromRectAndRadius(
+    const Rect.fromLTWH(100, 140, 100, 40),
+    const Radius.circular(10),
+  );
 
   EndDialogComponent({
     required Vector2 position,
     required Vector2 size,
     required this.score,
+    required this.onExit,
   }) : super(
     position: position,
     size: size,
@@ -290,13 +332,11 @@ class EndDialogComponent extends PositionComponent {
       ..color = Colors.white.withOpacity(0.9)
       ..style = PaintingStyle.fill;
 
-    // Draw dialog background with rounded corners
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, const Radius.circular(20)),
       paint,
     );
 
-    // Draw text
     final textPaint = TextPaint(
       style: const TextStyle(
         color: Colors.black,
@@ -305,20 +345,48 @@ class EndDialogComponent extends PositionComponent {
       ),
     );
 
-    // Draw end message
     textPaint.render(
       canvas,
-      'Time’s Up!',
+      "Time's Up!", // Fixed string literal
       Vector2(size.x / 2, size.y / 2 - 20),
       anchor: Anchor.center,
     );
 
-    // Draw score
     textPaint.render(
       canvas,
       'Score: $score',
       Vector2(size.x / 2, size.y / 2 + 20),
       anchor: Anchor.center,
     );
+
+    canvas.drawRRect(
+      buttonRect,
+      Paint()..color = Colors.blue,
+    );
+
+    const buttonTextStyle = TextStyle(
+      color: Colors.white,
+      fontSize: 20,
+      fontWeight: FontWeight.bold,
+    );
+
+    final buttonTextPaint = TextPaint(style: buttonTextStyle);
+    buttonTextPaint.render(
+      canvas,
+      'Exit',
+      Vector2(150, 160),
+      anchor: Anchor.center,
+    );
+  }
+
+
+  @override
+  bool onTapDown(TapDownEvent event) {
+    final touchPoint = event.localPosition;
+    if (buttonRect.contains(Offset(touchPoint.x, touchPoint.y))) {
+      onExit();
+      return true;
+    }
+    return false;
   }
 }

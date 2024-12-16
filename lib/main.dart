@@ -1,4 +1,5 @@
-//20241213_add to show the rank
+/* 20241213_add to show the rank
+/20241215 add exit button*/
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 import 'game.dart';
@@ -84,7 +85,7 @@ class _LoginPageState extends State<LoginPage> {
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => GamePage(playerName: _nameController.text),
+                          builder: (context) => GamePage(playerName: _nameController.text), // Remove context parameter
                         ),
                       );
                     }
@@ -119,14 +120,15 @@ class _LoginPageState extends State<LoginPage> {
 }
 
 class GamePage extends StatelessWidget {
-  final CatGame catGame;
   final String playerName;
 
-  GamePage({super.key, required this.playerName})
-      : catGame = CatGame(playerName: playerName);
+  const GamePage({super.key, required this.playerName});
 
   @override
   Widget build(BuildContext context) {
+    // Create catGame inside build method to have access to context
+    final catGame = CatGame(playerName: playerName, context: context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Cat Interaction Game'),
